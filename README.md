@@ -11,7 +11,7 @@ SO USE WITH UR OWN RESPONSIBILITY
 
 to get API use this: https://my.telegram.org/auth
 
-# Clone the repository
+**Clone the repository**
 git clone https://github.com/Venius24/telegram-channel-copy.git
 
 
