@@ -1,8 +1,8 @@
 [Telegram]
-api_id = YOUR_API_ID
-api_hash = 
+API_ID = YOUR_API_ID
+API_HASH = YOUR_API_HASH
 
 [Channels]
-donor_channel = YOUR_DONOR_CHANNEL
-my_channel = YOUR_CHANNEL
-start_message_id = YOUR_START_MESSAGE #n + 1 (starts from next)
+DONOR_CHANNEL = YOUR_DONOR_CHANNEL
+MY_CHANNEL = YOUR_CHANNEL
+START_MESSAGE_ID = YOUR_START_MESSAGE #n + 1 (starts from next)
