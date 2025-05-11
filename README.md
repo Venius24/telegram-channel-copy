@@ -16,7 +16,7 @@ to get API use this: https://my.telegram.org/auth
 git clone https://github.com/Venius24/telegram-channel-copy.git
 
 
-**Warning**
+*!!Warning!!*
 
 Before using this code u should change every config in keys.py
 
