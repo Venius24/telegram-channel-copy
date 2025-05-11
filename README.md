@@ -12,9 +12,12 @@ SO USE WITH UR OWN RESPONSIBILITY
 to get API use this: https://my.telegram.org/auth
 
 **Clone the repository**:
+
 git clone https://github.com/Venius24/telegram-channel-copy.git
 
 
+**Warning**
 
-Before using change every config in keys.py
+Before using this code u should change every config in keys.py
+
 I don't recommend to change length of delay because other time causes FloodWait error that incorrectly solves
