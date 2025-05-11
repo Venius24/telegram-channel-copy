@@ -1,4 +1,4 @@
-from keys import API_ID, API_HASH
+from keys import API_ID, API_HASH, MY_CHANNEL, DONOR_CHANNEL, START_MESSAGE_ID
 from pyrogram import Client
 from typing import AsyncGenerator
 from pyrogram.types import Message
@@ -8,7 +8,7 @@ from random import randint
 
 
 async def get_all_messages(client: Client, chat_id: str, limit_per_request: int = 100) -> list:
-    """Получает все сообщения с начала истории чата."""
+    """Retrieve all messages from the start of the channel/chat."""
     all_messages = []
     offset_id = 0
 
@@ -25,13 +25,13 @@ async def get_all_messages(client: Client, chat_id: str, limit_per_request: int 
 
         all_messages.extend(messages_list)
         offset_id = messages_list[-1].id
-        print(f"Получено {len(messages_list)} сообщений, текущий offset_id: {offset_id}")
+        print(f"Retrieved {len(messages_list)} messages, current offset_id: {offset_id}")
 
     return all_messages
 
 
 async def split_caption(caption: str, max_length: int = 1024) -> list:
-    """Разбивает длинную подпись на части по max_length символов."""
+    """Splits a long caption into parts of max_length characters."""
     if not caption or len(caption) <= max_length:
         return [caption] if caption else []
     
@@ -49,9 +49,9 @@ async def split_caption(caption: str, max_length: int = 1024) -> list:
 
 
 async def progress_callback(current: int, total: int, message_id: int, media_type: str):
-    """Callback-функция для отображения прогресса загрузки."""
+    """Callback function to display upload progress."""
     percent = (current / total) * 100
-    print(f"Загрузка {media_type} ID {message_id}: {percent:.2f}% ({current} из {total} байт)")
+    print(f"Uploading {media_type} ID {message_id}: {percent:.2f}% ({current} of {total} bytes)")
 
 
 async def clone_content(donor_channel_id: str, my_channel_id: int, start_message_id: int = None):
@@ -59,81 +59,81 @@ async def clone_content(donor_channel_id: str, my_channel_id: int, start_message
         raise ValueError("donor_channel_id and my_channel_id must not be empty")
 
     async with Client(name="my_session", api_id=API_ID, api_hash=API_HASH) as client:
-        print(f"Копируем из чата {donor_channel_id} в чат {my_channel_id}" + 
-              (f", начиная с ID {start_message_id}" if start_message_id else ""))
+        print(f"Copying from chat {donor_channel_id} to chat {my_channel_id}" + 
+              (f", starting from ID {start_message_id}" if start_message_id else ""))
 
-        # Проверяем donor_channel_id
+        # Check donor_channel_id
         try:
             donor_chat = await client.get_chat(donor_channel_id)
             print(f"Donor chat: {donor_chat.title} (ID: {donor_chat.id})")
         except Exception as e:
-            print(f"Ошибка с donor_channel_id '{donor_channel_id}': {e}")
+            print(f"Error with donor_channel_id '{donor_channel_id}': {e}")
             return
 
-        # Проверяем my_channel_id
+        # Check my_channel_id
         try:
             my_chat = await client.get_chat(my_channel_id)
             print(f"My chat: {my_chat.title} (ID: {my_chat.id})")
         except Exception as e:
-            print(f"Ошибка с my_channel_id '{my_channel_id}': {e}")
+            print(f"Error with my_channel_id '{my_channel_id}': {e}")
             return
 
-        # Тестовое сообщение в my_channel_id с обработкой FloodWait
+        # Test message in my_channel_id with FloodWait handling
         try:
-            test_message = await client.send_message(my_channel_id, "Тестовое сообщение от бота")
-            print(f"Тестовое сообщение отправлено в {my_channel_id}: {test_message.id}")
+            test_message = await client.send_message(my_channel_id, "Test message from bot")
+            print(f"Test message sent to {my_channel_id}: {test_message.id}")
             await test_message.delete()
         except FloodWait as e:
             wait_time = e.value
-            print(f"Слишком много запросов при отправке теста. Ждём {wait_time} секунд...")
+            print(f"Too many requests during test message. Waiting {wait_time} seconds...")
             await asyncio.sleep(wait_time)
-            test_message = await client.send_message(my_channel_id, "Тестовое сообщение от бота")
-            print(f"Тестовое сообщение отправлено в {my_channel_id}: {test_message.id}")
+            test_message = await client.send_message(my_channel_id, "Test message from bot")
+            print(f"Test message sent to {my_channel_id}: {test_message.id}")
             await test_message.delete()
         except Exception as e:
-            print(f"Не удалось отправить тестовое сообщение в {my_channel_id}: {e}")
+            print(f"Failed to send test message to {my_channel_id}: {e}")
             return
 
-        # Получаем все сообщения с начала истории
+        # Retrieve all messages from the beginning of history
         all_messages = await get_all_messages(client, donor_channel_id, limit_per_request=50)
-        print(f"Всего найдено {len(all_messages)} сообщений")
+        print(f"Found {len(all_messages)} messages in total")
 
-        # Переворачиваем порядок сообщений (от новых к старым)
+        # Reverse the order of messages (from newest to oldest)
         reversed_messages = all_messages[::-1]
 
-        # Фильтруем сообщения, начиная с start_message_id
+        # Filter messages starting from start_message_id
         if start_message_id:
             reversed_messages = [msg for msg in reversed_messages if msg.id > start_message_id]
-            print(f"После фильтрации осталось {len(reversed_messages)} сообщений, начиная с ID {start_message_id + 1}")
+            print(f"After filtering, {len(reversed_messages)} messages remain, starting from ID {start_message_id + 1}")
 
-        # Копируем сообщения в обратном порядке
+        # Copy messages in reverse order
         for message in reversed_messages:
             try:
-                # Получаем подпись или текст и разбиваем на части
+                # Get caption or text and split into parts
                 content = message.text or (message.caption.html if message.caption else "")
                 content_parts = await split_caption(content, max_length=1024)
 
-                # Отправляем основной контент с первой частью
+                # Send main content with the first part
                 if message.video:
                     for attempt in range(3):
                         try:
                             video = await message.download(
                                 in_memory=True,
                                 progress=progress_callback,
-                                progress_args=(message.id, "видео")
+                                progress_args=(message.id, "video")
                             )
                             await client.send_video(
                                 chat_id=my_channel_id,
                                 video=video,
                                 caption=content_parts[0] if content_parts else ""
                             )
-                            print(f"Скопировано видео ID {message.id}")
+                            print(f"Copied video ID {message.id}")
                             break
                         except BadMsgNotification as e:
-                            print(f"Ошибка msg_seqno для видео ID {message.id}: {e}. Повтор через 5 секунд...")
+                            print(f"msg_seqno error for video ID {message.id}: {e}. Retrying in 5 seconds...")
                             await asyncio.sleep(5)
                         except Exception as e:
-                            print(f"Ошибка загрузки видео ID {message.id}: {e}")
+                            print(f"Error uploading video ID {message.id}: {e}")
                             break
                 elif message.photo:
                     for attempt in range(3):
@@ -141,20 +141,20 @@ async def clone_content(donor_channel_id: str, my_channel_id: int, start_message
                             photo = await message.download(
                                 in_memory=True,
                                 progress=progress_callback,
-                                progress_args=(message.id, "фото")
+                                progress_args=(message.id, "photo")
                             )
                             await client.send_photo(
                                 chat_id=my_channel_id,
                                 photo=photo,
                                 caption=content_parts[0] if content_parts else ""
                             )
-                            print(f"Скопировано фото ID {message.id}")
+                            print(f"Copied photo ID {message.id}")
                             break
                         except BadMsgNotification as e:
-                            print(f"Ошибка msg_seqno для фото ID {message.id}: {e}. Повтор через 5 секунд...")
+                            print(f"msg_seqno error for photo ID {message.id}: {e}. Retrying in 5 seconds...")
                             await asyncio.sleep(5)
                         except Exception as e:
-                            print(f"Ошибка загрузки фото ID {message.id}: {e}")
+                            print(f"Error uploading photo ID {message.id}: {e}")
                             break
                 elif message.audio:
                     for attempt in range(3):
@@ -162,20 +162,20 @@ async def clone_content(donor_channel_id: str, my_channel_id: int, start_message
                             audio = await message.download(
                                 in_memory=True,
                                 progress=progress_callback,
-                                progress_args=(message.id, "аудио")
+                                progress_args=(message.id, "audio")
                             )
                             await client.send_audio(
                                 chat_id=my_channel_id,
                                 audio=audio,
                                 caption=content_parts[0] if content_parts else ""
                             )
-                            print(f"Скопировано аудио ID {message.id}")
+                            print(f"Copied audio ID {message.id}")
                             break
                         except BadMsgNotification as e:
-                            print(f"Ошибка msg_seqno для аудио ID {message.id}: {e}. Повтор через 5 секунд...")
+                            print(f"msg_seqno error for audio ID {message.id}: {e}. Retrying in 5 seconds...")
                             await asyncio.sleep(5)
                         except Exception as e:
-                            print(f"Ошибка загрузки аудио ID {message.id}: {e}")
+                            print(f"Error uploading audio ID {message.id}: {e}")
                             break
                 elif message.document:
                     for attempt in range(3):
@@ -183,20 +183,20 @@ async def clone_content(donor_channel_id: str, my_channel_id: int, start_message
                             document = await message.download(
                                 in_memory=True,
                                 progress=progress_callback,
-                                progress_args=(message.id, "документ")
+                                progress_args=(message.id, "document")
                             )
                             await client.send_document(
                                 chat_id=my_channel_id,
                                 document=document,
                                 caption=content_parts[0] if content_parts else ""
                             )
-                            print(f"Скопирован документ ID {message.id}")
+                            print(f"Copied document ID {message.id}")
                             break
                         except BadMsgNotification as e:
-                            print(f"Ошибка msg_seqno для документа ID {message.id}: {e}. Повтор через 5 секунд...")
+                            print(f"msg_seqno error for document ID {message.id}: {e}. Retrying in 5 seconds...")
                             await asyncio.sleep(5)
                         except Exception as e:
-                            print(f"Ошибка загрузки документа ID {message.id}: {e}")
+                            print(f"Error uploading document ID {message.id}: {e}")
                             break
                 elif message.voice:
                     for attempt in range(3):
@@ -204,20 +204,20 @@ async def clone_content(donor_channel_id: str, my_channel_id: int, start_message
                             voice = await message.download(
                                 in_memory=True,
                                 progress=progress_callback,
-                                progress_args=(message.id, "голосовое сообщение")
+                                progress_args=(message.id, "voice message")
                             )
                             await client.send_voice(
                                 chat_id=my_channel_id,
                                 voice=voice,
                                 caption=content_parts[0] if content_parts else ""
                             )
-                            print(f"Скопировано голосовое сообщение ID {message.id}")
+                            print(f"Copied voice message ID {message.id}")
                             break
                         except BadMsgNotification as e:
-                            print(f"Ошибка msg_seqno для голосового сообщения ID {message.id}: {e}. Повтор через 5 секунд...")
+                            print(f"msg_seqno error for voice message ID {message.id}: {e}. Retrying in 5 seconds...")
                             await asyncio.sleep(5)
                         except Exception as e:
-                            print(f"Ошибка загрузки голосового сообщения ID {message.id}: {e}")
+                            print(f"Error uploading voice message ID {message.id}: {e}")
                             break
                 elif message.video_note:
                     for attempt in range(3):
@@ -225,62 +225,62 @@ async def clone_content(donor_channel_id: str, my_channel_id: int, start_message
                             video_note = await message.download(
                                 in_memory=True,
                                 progress=progress_callback,
-                                progress_args=(message.id, "видео-заметка")
+                                progress_args=(message.id, "video note")
                             )
                             await client.send_video_note(
                                 chat_id=my_channel_id,
                                 video_note=video_note
                             )
-                            print(f"Скопирована видео-заметка ID {message.id}")
+                            print(f"Copied video note ID {message.id}")
                             break
                         except BadMsgNotification as e:
-                            print(f"Ошибка msg_seqno для видео-заметки ID {message.id}: {e}. Повтор через 5 секунд...")
+                            print(f"msg_seqno error for video note ID {message.id}: {e}. Retrying in 5 seconds...")
                             await asyncio.sleep(5)
                         except Exception as e:
-                            print(f"Ошибка загрузки видео-заметки ID {message.id}: {e}")
+                            print(f"Error uploading video note ID {message.id}: {e}")
                             break
-                elif content_parts:  # Отправляем текст только если он есть
+                elif content_parts:  # Send text only if it exists
                     await client.send_message(
                         chat_id=my_channel_id,
                         text=content_parts[0]
                     )
-                    print(f"Скопирован текст ID {message.id}")
+                    print(f"Copied text ID {message.id}")
                 else:
-                    print(f"Пропущено сообщение ID {message.id} — нет содержимого")
+                    print(f"Skipped message ID {message.id} — no content")
 
-                # Отправляем остальные части как отдельные сообщения
+                # Send remaining parts as separate messages
                 for part in content_parts[1:]:
                     await asyncio.sleep(randint(6, 20))
                     await client.send_message(
                         chat_id=my_channel_id,
                         text=part
                     )
-                    print(f"Отправлена дополнительная часть для сообщения ID {message.id}")
+                    print(f"Sent additional part for message ID {message.id}")
 
-                # Задержка между отправками сообщений
+                # Delay between sending messages
                 await asyncio.sleep(randint(6, 20))
 
             except FloodWait as e:
                 wait_time = e.value
-                print(f"Слишком много запросов. Ждём {wait_time} секунд...")
+                print(f"Too many requests. Waiting {wait_time} seconds...")
                 await asyncio.sleep(wait_time)
                 continue
             except Exception as e:
-                print(f"Ошибка при копировании сообщения ID {message.id}: {e}")
+                print(f"Error copying message ID {message.id}: {e}")
 
 if __name__ == "__main__":
-    donor_channel = "-1001629147115"  # Рабочий ID как строка
-    my_channel = -1002673775019       # Целевой ID как число
-    start_message_id = 6529         # Начинаем с ID 351 (после 350)
+    donor_channel = "-1001629147115"  # Source channel ID as string
+    my_channel = -1002673775019       # Target channel ID as integer
+    start_message_id = 6529           # Start from this message ID (6529 + 1)
     try:
         asyncio.run(clone_content(donor_channel_id=donor_channel, 
                                  my_channel_id=my_channel, 
                                  start_message_id=start_message_id))
     except FloodWait as e:
-        print(f"Слишком много запросов на верхнем уровне. Ждём {e.value} секунд и перезапускаем...")
+        print(f"Too many requests at top level. Waiting {e.value} seconds and restarting...")
         asyncio.sleep(e.value)
         asyncio.run(clone_content(donor_channel_id=donor_channel, 
                                  my_channel_id=my_channel, 
                                  start_message_id=start_message_id))
     except Exception as e:
-        print(f"Произошла ошибка: {e}")
+        print(f"An error occurred: {e}")
