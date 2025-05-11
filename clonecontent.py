@@ -257,8 +257,8 @@ async def clone_content(donor_channel_id: str, my_channel_id: int, start_message
                     )
                     print(f"Sent additional part for message ID {message.id}")
 
-                # Delay between sending messages
-                await asyncio.sleep(randint(6, 20))
+                # Delay between sending messages (sleep)
+                await asyncio.sleep(randint(6, 20)) # probably the safest delay from floodwait error
 
             except FloodWait as e:
                 wait_time = e.value
@@ -269,9 +269,10 @@ async def clone_content(donor_channel_id: str, my_channel_id: int, start_message
                 print(f"Error copying message ID {message.id}: {e}")
 
 if __name__ == "__main__":
-    donor_channel = "-1001629147115"  # Source channel ID as string
-    my_channel = -1002673775019       # Target channel ID as integer
-    start_message_id = 6529           # Start from this message ID (6529 + 1)
+    # no matter id as str or int
+    donor_channel = DONOR_CHANNEL # Source channel ID 
+    my_channel = MY_CHANNEL       # Target channel ID 
+    start_message_id = START_MESSAGE_ID   # Start from mext message ID (m + 1)
     try:
         asyncio.run(clone_content(donor_channel_id=donor_channel, 
                                  my_channel_id=my_channel, 
